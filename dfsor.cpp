@@ -1,122 +1,121 @@
-#include <bits/stdc++.h>
+#include <iostream>
+#include <map>
+#include <vector>
+#include <set>
+#include <queue>
 using namespace std;
 
 class Graph {
-    unordered_map<string, vector<pair<string, int>>> adj; // city -> list of (neighbor, weight)
-    unordered_set<string> cities; // to keep track of all cities
+    map<string, vector<pair<string, int>>> adj;
+    set<string> cities;
 
 public:
-    // Add directed edge from cityA to cityB with weight
-    void addEdge(string cityA, string cityB, int weight) {
-        adj[cityA].push_back({cityB, weight});
-        cities.insert(cityA);
-        cities.insert(cityB);
+    void addEdge(string from, string to, int weight) {
+        adj[from].push_back(make_pair(to, weight));
+        cities.insert(from);
+        cities.insert(to);
     }
 
-    // Print the adjacency list
-    void printGraph() {
-        for (auto &[city, neighbors] : adj) {
-            cout << city << " -> ";
-            for (auto &[neighbor, weight] : neighbors) {
-                cout << "(" << neighbor << ", " << weight << ") ";
+    void display() {
+        for (auto it = adj.begin(); it != adj.end(); ++it) {
+            cout << it->first << " -> ";
+            for (auto p : it->second) {
+                cout << "(" << p.first << ", " << p.second << ") ";
             }
             cout << endl;
         }
     }
 
-    // Calculate out-degrees
-    void printOutDegrees() {
-        for (const auto &city : cities) {
+    void outDegrees() {
+        for (auto city : cities) {
             cout << "Out-degree of " << city << ": " << adj[city].size() << endl;
         }
     }
 
-    // Calculate in-degrees
-    void printInDegrees() {
-        unordered_map<string, int> indegree;
-        for (const auto &city : cities) indegree[city] = 0;
+    void inDegrees() {
+        map<string, int> indeg;
+        for (auto city : cities) indeg[city] = 0;
 
-        for (const auto &[from, neighbors] : adj) {
-            for (const auto &[to, _] : neighbors) {
-                indegree[to]++;
+        for (auto it = adj.begin(); it != adj.end(); ++it) {
+            for (auto p : it->second) {
+                indeg[p.first]++;
             }
         }
 
-        for (const auto &city : cities) {
-            cout << "In-degree of " << city << ": " << indegree[city] << endl;
+        for (auto city : cities) {
+            cout << "In-degree of " << city << ": " << indeg[city] << endl;
         }
     }
 
-    // DFS utility
-    void DFS(string node, unordered_set<string> &visited) {
-        visited.insert(node);
-        for (const auto &[neighbor, _] : adj[node]) {
-            if (!visited.count(neighbor))
-                DFS(neighbor, visited);
+    void dfs(string node, map<string, bool> &visited) {
+        visited[node] = true;
+        for (auto p : adj[node]) {
+            if (!visited[p.first])
+                dfs(p.first, visited);
         }
     }
 
-    // Transpose the graph
     Graph getTranspose() {
-        Graph transposed;
-        for (const auto &[city, neighbors] : adj) {
-            for (const auto &[neighbor, weight] : neighbors) {
-                transposed.addEdge(neighbor, city, weight); // reverse the edge
+        Graph gT;
+        for (auto it = adj.begin(); it != adj.end(); ++it) {
+            string from = it->first;
+            for (auto p : it->second) {
+                gT.addEdge(p.first, from, p.second); // reverse direction
             }
         }
-        return transposed;
+        return gT;
     }
 
-    // Check if graph is strongly connected
     void isConnected() {
         if (cities.empty()) {
-            cout << "Graph is empty." << endl;
+            cout << "Graph is empty.\n";
             return;
         }
 
         string start = *cities.begin();
-
-        // DFS from start in original graph
-        unordered_set<string> visited;
-        DFS(start, visited);
-        if (visited.size() != cities.size()) {
-            cout << "Graph is NOT strongly connected (original)." << endl;
-            return;
+        map<string, bool> visited;
+        for (auto c : cities) visited[c] = false;
+        dfs(start, visited);
+        for (auto c : cities) {
+            if (!visited[c]) {
+                cout << "Graph is NOT strongly connected.\n";
+                return;
+            }
         }
 
-        // DFS on transposed graph
-        Graph transposed = getTranspose();
-        visited.clear();
-        transposed.DFS(start, visited);
-        if (visited.size() != cities.size()) {
-            cout << "Graph is NOT strongly connected (transposed)." << endl;
-        } else {
-            cout << "Graph is strongly connected." << endl;
+        Graph gt = getTranspose();
+        for (auto c : cities) visited[c] = false;
+        gt.dfs(start, visited);
+        for (auto c : cities) {
+            if (!visited[c]) {
+                cout << "Graph is NOT strongly connected.\n";
+                return;
+            }
         }
+
+        cout << "Graph is strongly connected.\n";
     }
 };
 
 int main() {
     Graph g;
+    g.addEdge("CityA", "CityB", 4);
+    g.addEdge("CityB", "CityC", 5);
+    g.addEdge("CityC", "CityA", 6);
+    g.addEdge("CityA", "CityD", 7);
+    g.addEdge("CityD", "CityE", 8);
+    g.addEdge("CityE", "CityA", 9);
 
-    // Sample flight connections with weights (time/fuel)
-    g.addEdge("CityA", "CityB", 5);
-    g.addEdge("CityB", "CityC", 10);
-    g.addEdge("CityC", "CityA", 15);
-    g.addEdge("CityA", "CityD", 8);
-    g.addEdge("CityD", "CityE", 6);
-    g.addEdge("CityE", "CityA", 12);
-
-    cout << "Adjacency List:\n";
-    g.printGraph();
-
-    cout << "\nOut-degrees:\n";
-    g.printOutDegrees();
+    cout << "\nGraph:\n";
+    g.display();
 
     cout << "\nIn-degrees:\n";
-    g.printInDegrees();
+    g.inDegrees();
 
-    cout << "\nChecking connectivity:\n";
+    cout << "\nOut-degrees:\n";
+    g.outDegrees();
+
+    cout << "\nConnectivity check:\n";
     g.isConnected();
 
     return 0;
